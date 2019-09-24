@@ -1,0 +1,81 @@
+#Saving the data in wbcd
+wbcd <-read.csv("Downloads/Machine-Learning-with-R-datasets-master/wisc_bc_data.csv")
+str(wbcd)
+nrow(wbcd)
+#dropping Id from the data
+wbcd <- wbcd[-1]
+
+#Diagnosis is the outcome variable that I want to predict
+table(wbcd$diagnosis)
+
+# We need diagnosis to be coded as factor
+wbcd$diagnosis <- factor(wbcd$diagnosis, levels = c("B", "M"),
+                         labels = c("Benign", "Malignant"))
+
+#we notice that values are labeled Benign and Malignant with 62.7 and 37.3% masses
+round(prop.table(table(wbcd$diagnosis))* 100, digits=1)
+
+#summary of 30 numerical variables
+summary(wbcd[-1])
+
+#As the features consist of varied range of values applying normalization to rescale the values
+normalize <- function(x) {
+                return((x-min(x))/(max(x)-min(x)))
+}
+
+#Checking if the normalization function is working
+normalize(c(1,2,3,4,5))
+
+#Using lapply that applies a function to the list
+wbcd_n <- as.data.frame(lapply(wbcd[2:31], normalize))
+
+#Confirming that the transformation was done correctly
+summary(wbcd_n)
+
+#Using 469 records for training and remaning 100 for testing. As the data is in the rndom order
+#100 consecutive records were extracted
+wbcd_train <- wbcd_n[1:469,]
+wbcd_test <- wbcd_n[470:569,]
+
+
+#storing the target variable diagnosis
+wbcd_train_labels <- wbcd[1:469, 1]
+wbcd_test_labels <- wbcd[470:569, 1]
+
+#installing class package
+install.packages("class")
+
+
+#to load the packgae during and session to use its function we use library
+library(class)
+
+wbcd_test_pred <- knn(train = wbcd_train, test = wbcd_test, cl= wbcd_train_labels, k=5)
+
+#Evaluating the performance of the model with cross table function of gmodels
+library(gmodels)
+
+#Specifying prop.chisq=FALSE will remove the chi-square values 
+#that are not needed,from the output
+CrossTable(x=wbcd_test_labels, y=wbcd_test_pred, prop.chisq = FALSE)
+
+#As only 2 values out of 100 were incorrectly classified
+#the model performance was good with 98% accuracy
+
+#To improve the performance we will use z score standardization
+wbcd_z <- as.data.frame(scale(wbcd[-1]))
+
+#Confirming if the transformation was applied
+summary(wbcd_z)
+wbcd_trainz <- wbcd_z[1:469,]
+wbcd_testz <- wbcd_z[470:569,]
+wbcd_train_labelsz <- wbcd[1:469, 1]
+wbcd_test_labelsz <- wbcd[470:569, 1]
+wbcd_test_predz <- knn(train = wbcd_trainz, test = wbcd_testz,
+                      cl = wbcd_train_labelsz, k=21)
+CrossTable(x = wbcd_test_labelsz, y = wbcd_test_predz,
+             prop.chisq=FALSE)
+
+#With different values of k and by using normalization different values of 
+#FN and FP were found out
+#Although the classifier was never perfect, the 1NN approach was able to avoid
+#some of the false negatives at the expense of adding false positives.
