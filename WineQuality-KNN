@@ -1,0 +1,75 @@
+#Saving the data in wine_data
+wine_data <-read.csv("Downloads/Machine-Learning-with-R-datasets-master/winequality-white.csv")
+str(wine_data)
+nrow(wine_data)
+anyNA(wine_data)
+table(wine_data$quality)
+
+#Converting the 1-10 values in quality variable to high and low
+wine_data$quality <- ifelse(wine_data$quality < 6, 'low','high') 
+nrow(wine_data)
+
+#converting quality variable to factor                     
+wine_data$quality <- factor(wine_data$quality)
+
+str(wine_data)
+
+#finding the proportion of high and low quality wine
+round(prop.table(table(wine_data$quality))* 100, digits=1)
+
+
+normalize <- function(x) {
+  return((x-min(x))/(max(x)-min(x)))
+}
+normalize(c(1,2,3,4,5))
+
+#normalizing the data
+wine_data_n <- as.data.frame(lapply(wine_data[1:11], normalize))
+
+summary(wine_data_n)
+
+#Dividing the data into train(90%) and test(10%)
+wine_data_train <- wine_data_n[1:4409,]
+wine_data_test <- wine_data_n[4410:4898,]
+
+#Storing target variable 'quality' into train and test labels
+wine_data_train_labels <- wine_data[1:4409, 12]
+wine_data_test_labels <- wine_data[4410:4898, 12]
+
+install.packages("class")
+
+
+#to load the packgae during and session to use its function we use library
+library(class)
+
+wine_data_test_pred <- knn(train = wine_data_train, test = wine_data_test,
+                           cl= wine_data_train_labels, k=65)
+
+#Evaluating the performance of the model with cross table function of gmodels
+library(gmodels)
+
+#Specifying prop.chisq=FALSE will remove the chi-square values 
+#that are not needed,from the output
+CrossTable(x=wine_data_test_labels, y=wine_data_test_pred, prop.chisq = FALSE)
+
+#Calculating the accuracy of KNN
+CM = table(wine_data_test_labels, wine_data_test_pred)
+accuracy = (sum(diag(CM)))/sum(CM)
+accuracy
+
+#Performing z transformation and repeating the above steps
+wine_data_z <- as.data.frame(scale(wine_data[-12]))
+summary(wine_data_z)
+wine_data_trainz <- wine_data_z[1:4409,]
+wine_data_testz <- wine_data_z[4410:4898,]
+wine_data_train_labelsz <- wine_data[1:4409, 12]
+wine_data_test_labelsz <- wine_data[4410:4898, 12]
+wine_data_test_predz <- knn(train = wine_data_trainz, test = wine_data_testz,
+                       cl = wine_data_train_labelsz, k=31)
+CrossTable(x = wine_data_test_labelsz, y = wine_data_test_predz,
+           prop.chisq=FALSE)
+CM = table(wine_data_test_labelsz, wine_data_test_predz)
+accuracy = (sum(diag(CM)))/sum(CM)
+accuracy
+
+
